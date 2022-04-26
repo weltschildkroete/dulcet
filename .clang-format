@@ -1,0 +1,16 @@
+AlignEscapedNewlines: Left
+AllowShortFunctionsOnASingleLine: Empty
+BraceWrapping:
+  AfterFunction: true
+BreakBeforeBraces: Custom
+BreakStringLiterals: false
+ColumnLimit: 100
+ContinuationIndentWidth: 8
+Cpp11BracedListStyle: false
+IndentWidth: 8
+PointerAlignment: Right
+SortIncludes: false
+SpaceAfterCStyleCast: true
+SpaceBeforeCpp11BracedList: true
+TabWidth: 8
+UseTab: Always
