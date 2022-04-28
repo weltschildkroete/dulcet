@@ -10,35 +10,6 @@
 
 #include "dulcet.h"
 
-struct dulcet_var {
-	unsigned int index;
-};
-
-struct dulcet_abs {
-	struct dulcet_term *m;
-};
-
-struct dulcet_app {
-	struct dulcet_term *m;
-	struct dulcet_term *n;
-};
-
-enum dulcet_term_kind {
-	DULCET_TERM_KIND_VAR,
-	DULCET_TERM_KIND_ABS,
-	DULCET_TERM_KIND_APP,
-};
-
-struct dulcet_term {
-	enum dulcet_term_kind kind;
-
-	union {
-		struct dulcet_var var;
-		struct dulcet_abs abs;
-		struct dulcet_app app;
-	};
-};
-
 struct dulcet_term *dulcet_alloc_var(unsigned int index)
 {
 	struct dulcet_term *t = malloc(sizeof(*t));
