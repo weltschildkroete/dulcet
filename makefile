@@ -3,20 +3,25 @@
 include config.mk
 
 BIN = dulceti
-TEST = test_dulcet
 
-SRC = dulceti.c dulcet.c test_dulcet.c
+TEST_DULCET = test_dulcet
+TEST_DULCET_PARSER = test_dulcet_parser
+TEST = $(TEST_DULCET) $(TEST_DULCET_PARSER)
+
+SRC = dulceti.c dulcet.c test_dulcet.c dulcet_parser.c test_dulcet_parser.c
 OBJ = $(SRC:.c=.o)
-INC = dulcet.h
+INC = dulcet.h dulcet_parser.h
 
 all: $(BIN) $(LIB)
 
-$(BIN): dulceti.o dulcet.o
-	$(CC) -o $@ dulceti.o dulcet.o $(LDFLAGS)
+$(BIN): dulceti.o dulcet.o dulcet_parser.o
+	$(CC) -o $@ dulceti.o dulcet.o dulcet_parser.o $(LDFLAGS)
 
-
-$(TEST): test_dulcet.o dulcet.o
+$(TEST_DULCET): test_dulcet.o dulcet.o
 	$(CC) -o $@ test_dulcet.o dulcet.o $(LDFLAGS)
+
+$(TEST_DULCET_PARSER): test_dulcet_parser.o dulcet.o dulcet_parser.o
+	$(CC) -o $@ test_dulcet_parser.o dulcet.o dulcet_parser.o $(LDFLAGS)
 
 $(OBJ): $(INC)
 
@@ -26,8 +31,11 @@ $(OBJ): $(INC)
 test_dulcet.o: test_dulcet.c
 	$(CC) -c -o $@ $< $(CPPFLAGS) -DZIDANE_SINGLE_THREADED $(CFLAGS)
 
+test_dulcet_parser.o: test_dulcet_parser.c
+	$(CC) -c -o $@ $< $(CPPFLAGS) -DZIDANE_SINGLE_THREADED $(CFLAGS)
+
 test: $(TEST)
-	./$<
+	@for t in $(TEST); do echo "./$$t"; ./$$t; done
 
 clean:
 	rm -f $(BIN) $(OBJ) $(TEST)
