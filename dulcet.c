@@ -168,7 +168,7 @@ void dulcet_term_print_classic(const struct dulcet_term *t)
 	printf("\n");
 }
 
-static void __dulcet_term_print_de_brujin_rec(const struct dulcet_term *t,
+static void __dulcet_term_print_de_bruijn_rec(const struct dulcet_term *t,
 					      unsigned int context_precedence, unsigned int depth)
 {
 	assert(t);
@@ -182,7 +182,7 @@ static void __dulcet_term_print_de_brujin_rec(const struct dulcet_term *t,
 			printf("(");
 		}
 		printf("%s", __DULCET_LAMBDA);
-		__dulcet_term_print_de_brujin_rec(t->abs.m, 0, depth);
+		__dulcet_term_print_de_bruijn_rec(t->abs.m, 0, depth);
 		if (context_precedence > 1) {
 			printf(")");
 		}
@@ -191,9 +191,9 @@ static void __dulcet_term_print_de_brujin_rec(const struct dulcet_term *t,
 		if (context_precedence == 3) {
 			printf("(");
 		}
-		__dulcet_term_print_de_brujin_rec(t->app.m, 2, depth);
+		__dulcet_term_print_de_bruijn_rec(t->app.m, 2, depth);
 		printf(" ");
-		__dulcet_term_print_de_brujin_rec(t->app.n, 3, depth);
+		__dulcet_term_print_de_bruijn_rec(t->app.n, 3, depth);
 		if (context_precedence == 3) {
 			printf(")");
 		}
@@ -204,9 +204,9 @@ static void __dulcet_term_print_de_brujin_rec(const struct dulcet_term *t,
 	}
 }
 
-void dulcet_term_print_de_brujin(const struct dulcet_term *t)
+void dulcet_term_print_de_bruijn(const struct dulcet_term *t)
 {
-	__dulcet_term_print_de_brujin_rec(t, 0, 0);
+	__dulcet_term_print_de_bruijn_rec(t, 0, 0);
 	printf("\n");
 }
 
