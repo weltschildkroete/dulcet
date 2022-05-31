@@ -34,6 +34,9 @@ $ echo '(\\\\4 2 (3 2 1)) (\\2 (2 1)) (\\2 (2 (2 1)))' | ./dulceti # lambda expr
 \\2 (2 (2 (2 (2 1)))) # expected output is 5
 ```
 
+For more information on different input or output notations and reduction
+strategies, see `dulceti --help`.
+
 To use this as a library in your C code, simply include the `dulcet.h` and
 `dulcet_parser.h` headers and link against the object files from the respective
 source files.
