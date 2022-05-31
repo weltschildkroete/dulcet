@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#include <string.h>
+
 #define ZIDANE_IMPLEMENTATION
 #include "zidane.h"
 
@@ -47,4 +49,40 @@ ZIDANE_TEST(beta_nor_pred_succ)
 
 	dulcet_term_free(expected);
 	dulcet_term_free(actual);
+}
+
+ZIDANE_TEST(term_sprint_classic)
+{
+	struct dulcet_term *succ = ABS(ABS(ABS(APP(VAR(2), APP(APP(VAR(3), VAR(2)), VAR(1))))));
+
+	char buf[BUFSIZ];
+	int rc = dulcet_term_sprint_classic(succ, buf);
+
+	ZIDANE_VERIFY(rc > 0);
+	ZIDANE_VERIFY((unsigned long) rc == strlen(buf));
+	ZIDANE_VERIFY(strcmp(buf, "λa.λb.λc.b (a b c)") == 0);
+
+	dulcet_term_free(succ);
+}
+
+ZIDANE_TEST(term_sprint_de_bruijn)
+{
+	struct dulcet_term *succ = ABS(ABS(ABS(APP(VAR(2), APP(APP(VAR(3), VAR(2)), VAR(1))))));
+
+	char buf[BUFSIZ];
+	int rc = dulcet_term_sprint_de_bruijn(succ, buf);
+
+	ZIDANE_VERIFY(rc > 0);
+	ZIDANE_VERIFY((unsigned long) rc == strlen(buf));
+	ZIDANE_VERIFY(strcmp(buf, "λλλ2 (3 2 1)") == 0);
+
+	dulcet_term_free(succ);
+}
+
+ZIDANE_TEST(term_sprint_fail)
+{
+	char buf[BUFSIZ];
+	int rc = dulcet_term_sprint_classic(NULL, buf);
+
+	ZIDANE_VERIFY(rc < 0);
 }

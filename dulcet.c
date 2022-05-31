@@ -122,163 +122,309 @@ static const char *__DULCET_LAMBDA = "λ";
 static const char *__DULCET_LAMBDA = "\\";
 #endif
 
-static void __dulcet_term_print_pretty_rec(const struct dulcet_term *t,
-					   unsigned int context_precedence, unsigned int depth)
+#define __DULCET_TRY(rc, condition)             \
+	do {                                    \
+		if (((rc) = (condition)) < 0) { \
+			return (rc);            \
+		}                               \
+	} while (0)
+
+static int __dulcet_term_fprint_classic_rec(const struct dulcet_term *t, FILE *fp,
+					    unsigned int context_precedence, unsigned int depth)
 {
-	assert(t);
+	if (!t) {
+		return -1;
+	}
+
+	int chars_written = 0;
+	int rc;
 
 	switch (t->kind) {
 	case DULCET_TERM_KIND_VAR:
 		if (depth >= t->var.index) {
-			printf("%c", 'a' + depth - t->var.index);
+			__DULCET_TRY(rc, fprintf(fp, "%c", 'a' + depth - t->var.index));
+			chars_written += rc;
 		} else {
-			printf("%c", 'a' + t->var.index - 1);
+			__DULCET_TRY(rc, fprintf(fp, "%c", 'a' + t->var.index - 1));
+			chars_written += rc;
 		}
 		break;
 	case DULCET_TERM_KIND_ABS:
 		if (context_precedence > 1) {
-			printf("(");
+			__DULCET_TRY(rc, fprintf(fp, "("));
+			chars_written += rc;
 		}
-		printf("%s%c.", __DULCET_LAMBDA, 'a' + depth);
-		__dulcet_term_print_pretty_rec(t->abs.m, 0, depth + 1);
+
+		__DULCET_TRY(rc, fprintf(fp, "%s%c.", __DULCET_LAMBDA, 'a' + depth));
+		chars_written += rc;
+
+		__DULCET_TRY(rc, __dulcet_term_fprint_classic_rec(t->abs.m, fp, 0, depth + 1));
+		chars_written += rc;
+
 		if (context_precedence > 1) {
-			printf(")");
+			__DULCET_TRY(rc, fprintf(fp, ")"));
+			chars_written += rc;
 		}
 		break;
 	case DULCET_TERM_KIND_APP:
 		if (context_precedence == 3) {
-			printf("(");
+			__DULCET_TRY(rc, fprintf(fp, "("));
+			chars_written += rc;
 		}
-		__dulcet_term_print_pretty_rec(t->app.m, 2, depth);
-		printf(" ");
-		__dulcet_term_print_pretty_rec(t->app.n, 3, depth);
+
+		__DULCET_TRY(rc, __dulcet_term_fprint_classic_rec(t->app.m, fp, 2, depth));
+		chars_written += rc;
+
+		__DULCET_TRY(rc, fprintf(fp, " "));
+		chars_written += rc;
+
+		__DULCET_TRY(rc, __dulcet_term_fprint_classic_rec(t->app.n, fp, 3, depth));
+		chars_written += rc;
+
 		if (context_precedence == 3) {
-			printf(")");
+			__DULCET_TRY(rc, fprintf(fp, ")"));
+			chars_written += rc;
 		}
 		break;
 	default:
-		fprintf(stderr, "dulcet: fatal error\n");
-		exit(1);
+		return -1;
 	}
+
+	return chars_written;
 }
 
-void dulcet_term_print_classic(const struct dulcet_term *t)
+static int __dulcet_term_sprint_classic_rec(const struct dulcet_term *t, char *buf,
+					    unsigned int context_precedence, unsigned int depth)
 {
-	__dulcet_term_print_pretty_rec(t, 0, 0);
-	printf("\n");
+	if (!t) {
+		return -1;
+	}
+
+	int chars_written = 0;
+	int rc;
+
+	switch (t->kind) {
+	case DULCET_TERM_KIND_VAR:
+		if (depth >= t->var.index) {
+			__DULCET_TRY(
+				rc, sprintf(buf + chars_written, "%c", 'a' + depth - t->var.index));
+			chars_written += rc;
+		} else {
+			__DULCET_TRY(rc,
+				     sprintf(buf + chars_written, "%c", 'a' + t->var.index - 1));
+			chars_written += rc;
+		}
+		break;
+	case DULCET_TERM_KIND_ABS:
+		if (context_precedence > 1) {
+			__DULCET_TRY(rc, sprintf(buf + chars_written, "("));
+			chars_written += rc;
+		}
+
+		__DULCET_TRY(rc,
+			     sprintf(buf + chars_written, "%s%c.", __DULCET_LAMBDA, 'a' + depth));
+		chars_written += rc;
+
+		__DULCET_TRY(rc, __dulcet_term_sprint_classic_rec(t->abs.m, buf + chars_written, 0,
+								  depth + 1));
+		chars_written += rc;
+
+		if (context_precedence > 1) {
+			__DULCET_TRY(rc, sprintf(buf + chars_written, ")"));
+			chars_written += rc;
+		}
+		break;
+	case DULCET_TERM_KIND_APP:
+		if (context_precedence == 3) {
+			__DULCET_TRY(rc, sprintf(buf + chars_written, "("));
+			chars_written += rc;
+		}
+
+		__DULCET_TRY(rc, __dulcet_term_sprint_classic_rec(t->app.m, buf + chars_written, 2,
+								  depth));
+		chars_written += rc;
+
+		__DULCET_TRY(rc, sprintf(buf + chars_written, " "));
+		chars_written += rc;
+
+		__DULCET_TRY(rc, __dulcet_term_sprint_classic_rec(t->app.n, buf + chars_written, 3,
+								  depth));
+		chars_written += rc;
+
+		if (context_precedence == 3) {
+			__DULCET_TRY(rc, sprintf(buf + chars_written, ")"));
+			chars_written += rc;
+		}
+		break;
+	default:
+		return -1;
+	}
+
+	return chars_written;
 }
 
-static void __dulcet_term_print_de_bruijn_rec(const struct dulcet_term *t,
+static int __dulcet_term_fprint_de_bruijn_rec(const struct dulcet_term *t, FILE *fp,
 					      unsigned int context_precedence, unsigned int depth)
 {
-	assert(t);
+	if (!t) {
+		return -1;
+	}
+
+	int chars_written = 0;
+	int rc;
 
 	switch (t->kind) {
 	case DULCET_TERM_KIND_VAR:
-		printf("%d", t->var.index);
+		__DULCET_TRY(rc, fprintf(fp, "%d", t->var.index));
+		chars_written += rc;
 		break;
 	case DULCET_TERM_KIND_ABS:
 		if (context_precedence > 1) {
-			printf("(");
+			__DULCET_TRY(rc, fprintf(fp, "("));
+			chars_written += rc;
 		}
-		printf("%s", __DULCET_LAMBDA);
-		__dulcet_term_print_de_bruijn_rec(t->abs.m, 0, depth);
+
+		__DULCET_TRY(rc, fprintf(fp, "%s", __DULCET_LAMBDA));
+		chars_written += rc;
+
+		__DULCET_TRY(rc, __dulcet_term_fprint_de_bruijn_rec(t->abs.m, fp, 0, depth));
+		chars_written += rc;
+
 		if (context_precedence > 1) {
-			printf(")");
+			__DULCET_TRY(rc, fprintf(fp, ")"));
+			chars_written += rc;
 		}
 		break;
 	case DULCET_TERM_KIND_APP:
 		if (context_precedence == 3) {
-			printf("(");
+			__DULCET_TRY(rc, fprintf(fp, "("));
+			chars_written += rc;
 		}
-		__dulcet_term_print_de_bruijn_rec(t->app.m, 2, depth);
-		printf(" ");
-		__dulcet_term_print_de_bruijn_rec(t->app.n, 3, depth);
+
+		__DULCET_TRY(rc, __dulcet_term_fprint_de_bruijn_rec(t->app.m, fp, 2, depth));
+		chars_written += rc;
+
+		__DULCET_TRY(rc, fprintf(fp, " "));
+		chars_written += rc;
+
+		__DULCET_TRY(rc, __dulcet_term_fprint_de_bruijn_rec(t->app.n, fp, 3, depth));
+		chars_written += rc;
+
 		if (context_precedence == 3) {
-			printf(")");
+			__DULCET_TRY(rc, fprintf(fp, ")"));
+			chars_written += rc;
 		}
 		break;
 	default:
-		fprintf(stderr, "dulcet: fatal error\n");
-		exit(1);
+		return -1;
 	}
+
+	return chars_written;
 }
 
-void dulcet_term_print_de_bruijn(const struct dulcet_term *t)
+static int __dulcet_term_sprint_de_bruijn_rec(const struct dulcet_term *t, char *buf,
+					      unsigned int context_precedence, unsigned int depth)
 {
-	__dulcet_term_print_de_bruijn_rec(t, 0, 0);
-	printf("\n");
-}
-
-// FIXME: return number of characters written
-static void __dulcet_term_sprint_classic_rec(char *buf, unsigned int max_size,
-					     const struct dulcet_term *t,
-					     unsigned int context_precedence, unsigned int depth,
-					     unsigned int *pos)
-{
-	assert(t);
-
-	if (*pos >= max_size) {
-		// FIXME: don't write more than max_size
+	if (!t) {
+		return -1;
 	}
+
+	int chars_written = 0;
+	int rc;
 
 	switch (t->kind) {
 	case DULCET_TERM_KIND_VAR:
-		if (depth >= t->var.index) {
-			buf[*pos] = 'a' + depth - t->var.index;
-		} else {
-			buf[*pos] = 'a' + t->var.index - 1;
-		}
-		*pos += 1;
+		__DULCET_TRY(rc, sprintf(buf + chars_written, "%d", t->var.index));
+		chars_written += rc;
 		break;
 	case DULCET_TERM_KIND_ABS:
 		if (context_precedence > 1) {
-			buf[*pos] = '(';
-			*pos += 1;
+			__DULCET_TRY(rc, sprintf(buf + chars_written, "("));
+			chars_written += rc;
 		}
-		int n = 0;
-		if ((n = sprintf(buf + *pos, "%s", __DULCET_LAMBDA)) <= 0) {
-			fprintf(stderr, "dulcet: fatal error\n");
-		}
-		*pos += n;
-		buf[*pos] = 'a' + depth;
-		*pos += 1;
-		buf[*pos] = '.';
-		*pos += 1;
-		__dulcet_term_sprint_classic_rec(buf, max_size, t->abs.m, 0, depth + 1, pos);
+
+		__DULCET_TRY(rc, sprintf(buf + chars_written, "%s", __DULCET_LAMBDA));
+		chars_written += rc;
+
+		__DULCET_TRY(rc, __dulcet_term_sprint_de_bruijn_rec(t->abs.m, buf + chars_written,
+								    0, depth));
+		chars_written += rc;
+
 		if (context_precedence > 1) {
-			buf[*pos] = ')';
-			*pos += 1;
+			__DULCET_TRY(rc, sprintf(buf + chars_written, ")"));
+			chars_written += rc;
 		}
 		break;
 	case DULCET_TERM_KIND_APP:
 		if (context_precedence == 3) {
-			buf[*pos] = '(';
-			*pos += 1;
+			__DULCET_TRY(rc, sprintf(buf + chars_written, "("));
+			chars_written += rc;
 		}
-		__dulcet_term_sprint_classic_rec(buf, max_size, t->app.m, 2, depth, pos);
-		buf[*pos] = ' ';
-		*pos += 1;
-		__dulcet_term_sprint_classic_rec(buf, max_size, t->app.n, 3, depth, pos);
+
+		__DULCET_TRY(rc, __dulcet_term_sprint_de_bruijn_rec(t->app.m, buf + chars_written,
+								    2, depth));
+		chars_written += rc;
+
+		__DULCET_TRY(rc, sprintf(buf + chars_written, " "));
+		chars_written += rc;
+
+		__DULCET_TRY(rc, __dulcet_term_sprint_de_bruijn_rec(t->app.n, buf + chars_written,
+								    3, depth));
+		chars_written += rc;
+
 		if (context_precedence == 3) {
-			buf[*pos] = ')';
-			*pos += 1;
+			__DULCET_TRY(rc, sprintf(buf + chars_written, ")"));
+			chars_written += rc;
 		}
 		break;
 	default:
-		fprintf(stderr, "dulcet: fatal error\n");
-		exit(1);
+		return -1;
 	}
+
+	return chars_written;
 }
 
-void dulcet_term_sprint_classic(char *buf, unsigned int max_size, const struct dulcet_term *t)
+int dulcet_term_print_classic(const struct dulcet_term *t)
 {
-	unsigned int pos = 0;
-
-	__dulcet_term_sprint_classic_rec(buf, max_size, t, 0, 0, &pos);
-
-	buf[pos] = '\0';
+	return __dulcet_term_fprint_classic_rec(t, stdout, 0, 0);
 }
+
+int dulcet_term_print_de_bruijn(const struct dulcet_term *t)
+{
+	return __dulcet_term_fprint_de_bruijn_rec(t, stdout, 0, 0);
+}
+
+int dulcet_term_fprint_classic(const struct dulcet_term *t, FILE *fp)
+{
+	return __dulcet_term_fprint_classic_rec(t, fp, 0, 0);
+}
+
+int dulcet_term_fprint_de_bruijn(const struct dulcet_term *t, FILE *fp)
+{
+	return __dulcet_term_fprint_de_bruijn_rec(t, fp, 0, 0);
+}
+
+int dulcet_term_sprint_classic(const struct dulcet_term *t, char *buf)
+{
+	int rc;
+	__DULCET_TRY(rc, __dulcet_term_sprint_classic_rec(t, buf, 0, 0));
+
+	buf[rc] = '\0';
+
+	return rc;
+}
+
+int dulcet_term_sprint_de_bruijn(const struct dulcet_term *t, char *buf)
+{
+	int rc;
+	__DULCET_TRY(rc, __dulcet_term_sprint_de_bruijn_rec(t, buf, 0, 0));
+
+	buf[rc] = '\0';
+
+	return rc;
+}
+
+#undef __DULCET_TRY
 
 static void __dulcet_update_free_variables(struct dulcet_term *t, unsigned int added_depth,
 					   unsigned int own_depth)

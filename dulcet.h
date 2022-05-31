@@ -7,6 +7,8 @@
 #ifndef _DULCET_H
 #define _DULCET_H
 
+#include "stdio.h"
+
 struct dulcet_term;
 
 struct dulcet_var {
@@ -47,9 +49,14 @@ void dulcet_term_free(struct dulcet_term *t);
 
 int dulcet_term_eq(struct dulcet_term *a, struct dulcet_term *b);
 
-void dulcet_term_print_classic(const struct dulcet_term *t);
-void dulcet_term_print_de_bruijn(const struct dulcet_term *t);
-void dulcet_term_sprint_classic(char *buf, unsigned int max_size, const struct dulcet_term *t);
+int dulcet_term_print_classic(const struct dulcet_term *t);
+int dulcet_term_print_de_bruijn(const struct dulcet_term *t);
+
+int dulcet_term_fprint_classic(const struct dulcet_term *t, FILE *fp);
+int dulcet_term_fprint_de_bruijn(const struct dulcet_term *t, FILE *fp);
+
+int dulcet_term_sprint_classic(const struct dulcet_term *t, char *buf);
+int dulcet_term_sprint_de_bruijn(const struct dulcet_term *t, char *buf);
 
 void dulcet_apply(struct dulcet_term *t, struct dulcet_term *rhs);
 void dulcet_eval(struct dulcet_term *t);
