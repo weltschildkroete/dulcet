@@ -1,0 +1,7 @@
+; factorial 3 = 6
+; where factorial = Y G
+; and G = \r.\n.(1, if n = 0; else n × (r (n−1)))
+
+(\Y.\G.Y G (\f.\x.f (f (f x))))
+  (\g.(\x.g (x x)) (\x.g (x x)))
+  (\r.\n.(((\n.n (\x.(\x.\y.y)) (\x.\y.x)) n) (\f.\x.f x) ((\m.\n.\f.m (n f)) n (r ((\n.\f.\x.n (\g.\h.h (g f)) (\u.x) (\u.u)) n)))))

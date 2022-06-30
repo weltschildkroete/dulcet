@@ -1,0 +1,4 @@
+; plus 2 3 = 5
+
+(\plus.\two.\three. plus two three)
+  (\m.\n.\f.\x.m f (n f x)) (\f.\x.f (f x)) (\f.\x.f (f (f x)))

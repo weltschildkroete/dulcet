@@ -1,0 +1,4 @@
+; (car (cdr (list 0 1))) = 1
+
+(\pair.\first.\second.\nil.first (second (pair (\f.\x.x) (pair (\f.\x.f x) nil))))
+  (\x.\y.\f.f x y) (\p.p (\x.\y.x)) (\p.p (\x.\y.y)) (\x.\x.\y.x)
