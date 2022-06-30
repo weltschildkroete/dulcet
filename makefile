@@ -8,20 +8,20 @@ TEST_DULCET = test_dulcet
 TEST_DULCET_PARSER = test_dulcet_parser
 TEST = $(TEST_DULCET) $(TEST_DULCET_PARSER)
 
-SRC = dulceti.c dulcet.c test_dulcet.c dulcet_parser.c test_dulcet_parser.c
+SRC = dulceti.c dulcet.c test_dulcet.c dulcet_parser.c test_dulcet_parser.c sorvete.c
 OBJ = $(SRC:.c=.o)
-INC = dulcet.h dulcet_parser.h
+INC = dulcet.h dulcet_parser.h sorvete.h
 
 all: $(BIN) $(LIB)
 
-$(BIN): dulceti.o dulcet.o dulcet_parser.o
-	$(CC) -o $@ dulceti.o dulcet.o dulcet_parser.o $(LDFLAGS)
+$(BIN): dulceti.o dulcet.o dulcet_parser.o sorvete.o
+	$(CC) -o $@ dulceti.o dulcet.o dulcet_parser.o sorvete.o $(LDFLAGS)
 
 $(TEST_DULCET): test_dulcet.o dulcet.o
 	$(CC) -o $@ test_dulcet.o dulcet.o $(LDFLAGS)
 
-$(TEST_DULCET_PARSER): test_dulcet_parser.o dulcet.o dulcet_parser.o
-	$(CC) -o $@ test_dulcet_parser.o dulcet.o dulcet_parser.o $(LDFLAGS)
+$(TEST_DULCET_PARSER): test_dulcet_parser.o dulcet.o dulcet_parser.o sorvete.o
+	$(CC) -o $@ test_dulcet_parser.o dulcet.o dulcet_parser.o sorvete.o $(LDFLAGS)
 
 $(OBJ): $(INC)
 
