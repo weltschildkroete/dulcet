@@ -90,3 +90,36 @@ ZIDANE_TEST(parse_de_bruijn_parenthesized)
 	dulcet_term_free(actual);
 	dulcet_term_free(expected);
 }
+
+ZIDANE_TEST(parse_de_bruijn_unmatched_lparen)
+{
+	const char input[] = "(";
+
+	struct dulcet_parse_result result = dulcet_parse_de_bruijn(input, ARRAY_SIZE(input));
+	ZIDANE_VERIFY(result.kind == DULCET_PARSE_ERROR);
+	ZIDANE_VERIFY(result.error.cause == DULCET_PARSE_ERROR_CAUSE_UNMATCHED_PAREN);
+	ZIDANE_VERIFY(result.error.line == 1);
+	ZIDANE_VERIFY(result.error.column == 1);
+}
+
+ZIDANE_TEST(parse_de_bruijn_unexpected_rparen)
+{
+	const char input[] = ")";
+
+	struct dulcet_parse_result result = dulcet_parse_de_bruijn(input, ARRAY_SIZE(input));
+	ZIDANE_VERIFY(result.kind == DULCET_PARSE_ERROR);
+	ZIDANE_VERIFY(result.error.cause == DULCET_PARSE_ERROR_CAUSE_UNMATCHED_PAREN);
+	ZIDANE_VERIFY(result.error.line == 1);
+	ZIDANE_VERIFY(result.error.column == 1);
+}
+
+ZIDANE_TEST(parse_de_bruijn_unexpected_rparen_nested)
+{
+	const char input[] = "((\\1)))";
+
+	struct dulcet_parse_result result = dulcet_parse_de_bruijn(input, ARRAY_SIZE(input));
+	ZIDANE_VERIFY(result.kind == DULCET_PARSE_ERROR);
+	ZIDANE_VERIFY(result.error.cause == DULCET_PARSE_ERROR_CAUSE_UNMATCHED_PAREN);
+	ZIDANE_VERIFY(result.error.line == 1);
+	ZIDANE_VERIFY(result.error.column == 7);
+}
