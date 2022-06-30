@@ -36,6 +36,7 @@ static char *shift_arg(int *argc, char ***argv)
 int main(int argc, char **argv)
 {
 	char *program_name = shift_arg(&argc, &argv);
+	char *input_file_path = NULL;
 	FILE *input_fp = stdin;
 	FILE *output_fp = stdout;
 
@@ -54,7 +55,7 @@ int main(int argc, char **argv)
 				return 1;
 			}
 
-			char *input_file_path = shift_arg(&argc, &argv);
+			input_file_path = shift_arg(&argc, &argv);
 
 			if (strcmp(input_file_path, "-") == 0) {
 				input_fp = stdin;
@@ -94,18 +95,58 @@ int main(int argc, char **argv)
 
 	int bytes_read = fread(input, sizeof(char), BUFSIZ, input_fp);
 	(void) bytes_read;
-	int error_code = ferror(input_fp);
-	if (error_code != 0) {
-		// FIXME: strerror(ferror) is most probably incorrect
-		perror(strerror(error_code));
+	int rc = ferror(input_fp);
+	if (rc != 0) {
+		perror("fread");
 		return 1;
 	}
 
-	struct dulcet_term *input_term = dulcet_parse_de_bruijn(input, 0);
+	rc = fclose(input_fp);
+        if (rc != 0) {
+                perror("fclose");
+                return 1;
+        }
+
+	struct dulcet_parse_result result = dulcet_parse_classic(input, strlen(input));
+
+	if (result.kind == DULCET_PARSE_ERROR) {
+		if (input_file_path) {
+			fprintf(stderr, "%s:", input_file_path);
+		}
+		fprintf(stderr, "%u:%u: fatal error: ", result.error.line, result.error.column);
+
+		switch (result.error.cause) {
+		case DULCET_PARSE_ERROR_CAUSE_UNKNOWN:
+			fprintf(stderr, "unexpected error\n");
+			break;
+		case DULCET_PARSE_ERROR_CAUSE_UNMATCHED_PAREN:
+			fprintf(stderr, "unmatched `%.*s`\n", result.error.text_len,
+				result.error.text_start);
+			break;
+		case DULCET_PARSE_ERROR_CAUSE_UNEXPECTED_TOKEN:
+			fprintf(stderr, "unexpected `%.*s`\n", result.error.text_len,
+				result.error.text_start);
+			break;
+		case DULCET_PARSE_ERROR_CAUSE_UNBOUND_VARIABLE:
+			fprintf(stderr, "unbound variable `%.*s`\n", result.error.text_len,
+				result.error.text_start);
+			break;
+		}
+		return 1;
+	}
+
+	struct dulcet_term *input_term = result.value;
 
 	dulcet_beta_nor(input_term);
 
-	dulcet_term_print_de_bruijn(input_term);
+	dulcet_term_fprint_classic(input_term, output_fp);
+	fprintf(output_fp, "\n");
+
+        fclose(output_fp);
+        if (rc != 0) {
+                perror("fclose");
+                return 1;
+        }
 
 	dulcet_term_free(input_term);
 
